@@ -806,7 +806,7 @@ async function start() {
 function toEmail(v) {
   v = String(v || '').trim();
   if (v.includes('@')) return v.toLowerCase();
-  return v.toLowerCase().replace(/\s+/g, '') + '@' + (CFG.STAFF_DOMAIN || 'royal-event.example.com');
+  return v.toLowerCase().replace(/\s+/g, '') + '@' + (CFG.STAFF_DOMAIN || 'khonperformance.com');
 }
 function loadScript(src) {
   return new Promise((ok, fail) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = fail; document.head.appendChild(s); });
