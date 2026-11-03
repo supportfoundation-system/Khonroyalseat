@@ -2,7 +2,7 @@
    - ไฟล์ของแอป: ดึงใหม่จากเน็ตก่อน (ได้เวอร์ชันล่าสุดเสมอ) ถ้าไม่มีเน็ตใช้ที่เก็บไว้
    - ไลบรารี/ฟอนต์จาก CDN: ใช้ที่เก็บไว้ แล้วอัปเดตเบื้องหลัง
    - ข้อมูลจาก Supabase: ไม่ผ่าน service worker (แอปจัดการเอง) */
-const CACHE = 'royal-app-v1';
+const CACHE = 'royal-app-v2';
 const SHELL = ['./', 'index.html', 'style.css', 'app.js', 'config.js', 'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png', 'icons/favicon-64.png'];
 const CDN = /^https:\/\/(cdn\.jsdelivr\.net|cdnjs\.cloudflare\.com|fonts\.googleapis\.com|fonts\.gstatic\.com)\//;
