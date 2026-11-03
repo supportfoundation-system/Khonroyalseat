@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>ระบบลงทะเบียนรอบเสด็จ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+Thai:wght@600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- เข้าสู่ระบบ -->
+<div id="login" class="wrap" hidden>
+  <div class="login">
+    <h1 id="loginTitle">ระบบลงทะเบียนรอบเสด็จ</h1>
+    <p class="ag" id="loginVenue"></p>
+
+    <div id="loginDemo" hidden class="stack">
+      <div class="msg warn">โหมดสาธิต: ใช้ข้อมูลเดโม่ที่เก็บในเบราว์เซอร์นี้ เปิดหลายแท็บบนเครื่องเดียวกันจะเห็นข้อมูลตรงกัน</div>
+      <label class="f">ชื่อจุดที่ใช้งาน
+        <input id="demoName" value="เคาน์เตอร์ 1" autocomplete="off">
+      </label>
+      <div class="roles">
+        <button type="button" data-role="counter"><b>เจ้าหน้าที่เคาน์เตอร์</b><span>ค้นชื่อ ยืนยันลงทะเบียน ยกเลิกเมื่อกดผิด</span></button>
+        <button type="button" data-role="supervisor"><b>หัวหน้างาน</b><span>ทำได้ทั้งหมด รวมถึงย้าย สลับ ปิดที่นั่ง และนำเข้ารายชื่อ</span></button>
+        <button type="button" data-role="viewer"><b>ผู้บริหาร / จอแสดงผล</b><span>ดูผังที่นั่งและยอดผู้มาถึงอย่างเดียว</span></button>
+      </div>
+    </div>
+
+    <form id="loginForm" hidden class="stack">
+      <label class="f">ชื่อผู้ใช้<input id="email" autocomplete="username" placeholder="เช่น Counter 1 หรือ Lead" required></label>
+      <label class="f">รหัสผ่าน<input id="password" type="password" autocomplete="current-password" required></label>
+      <button class="btn full" type="submit" id="loginBtn">เข้าสู่ระบบ</button>
+      <div id="loginErr" class="msg err" hidden></div>
+    </form>
+  </div>
+</div>
+
+<!-- แอป -->
+<div id="app" hidden>
+  <div class="banner" id="verBanner" hidden><div class="wrap">มีระบบเวอร์ชันใหม่ กดโหลดใหม่เมื่อไม่มีแขกรออยู่ <button class="small-btn" type="button" id="reloadBtn">โหลดใหม่</button></div></div>
+  <header>
+    <div class="wrap">
+      <div class="head">
+        <div class="brand"><h1 id="eventName"></h1><p id="venue"></p></div>
+        <div class="stats">
+          <div class="stat"><b id="sTotal">0</b><span>ที่นั่งทั้งหมด</span></div>
+          <div class="stat red"><b id="sTaken">0</b><span>ลงทะเบียนแล้ว</span></div>
+          <div class="stat blue"><b id="sFree">0</b><span>ยังไม่มา</span></div>
+          <div class="stat"><b id="sPeople">0</b><span>แขก (คน)</span></div>
+        </div>
+        <div class="bar" title="สัดส่วนที่นั่งที่ลงทะเบียนแล้ว"><i id="sBar" style="width:0"></i></div>
+      </div>
+      <div class="navrow">
+        <nav>
+          <a href="#register" data-v="register" data-need="counter,supervisor">เคาน์เตอร์ลงทะเบียน</a>
+          <a href="#seats" data-v="seats">ผังที่นั่ง</a>
+          <a href="#groups" data-v="groups">รายกลุ่ม</a>
+          <a href="#manage" data-v="manage" data-need="supervisor">จัดการ</a>
+        </nav>
+        <div class="who"><span class="chip" id="conn">กำลังเชื่อมต่อ</span><span id="whoName"></span><button class="linkbtn" type="button" id="logout">ออก</button></div>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <!-- เคาน์เตอร์ -->
+    <section class="view" id="v-register">
+      <div class="reg">
+        <div>
+          <div class="search"><input id="q" type="search" placeholder="พิมพ์ชื่อ นามสกุล หรือหน่วยงาน" autocomplete="off" aria-label="ค้นหารายชื่อแขก"></div>
+          <p class="hint">ค้นด้วยชื่อ นามสกุล หน่วยงาน หรือพิมพ์ “ก12” เพื่อดูกลุ่ม 12 · ↑ ↓ แล้ว Enter เพื่อเลือก</p>
+          <div class="results" id="results"></div>
+        </div>
+        <aside class="card slip" id="slip"></aside>
+      </div>
+    </section>
+
+    <!-- ผังที่นั่ง -->
+    <section class="view" id="v-seats">
+      <div class="tools">
+        <label>แสดงกลุ่ม <select id="gfilter"><option value="">ทุกกลุ่ม</option></select></label>
+        <div class="legend">
+          <span><i style="background:var(--free)"></i>ยังไม่ลงทะเบียน</span>
+          <span><i style="background:var(--taken)"></i>ลงทะเบียนแล้ว</span>
+          <span><i style="background:var(--empty)"></i>ว่าง</span>
+          <span><i style="background:repeating-linear-gradient(45deg,var(--blocked) 0 3px,transparent 3px 6px)"></i>ปิดที่นั่ง</span>
+        </div>
+        <button class="small-btn" type="button" id="editMode" data-need="supervisor">แก้ไขที่นั่ง</button>
+      </div>
+      <div class="editbar" id="editBar" hidden></div>
+      <div class="hall"><div class="stage">เวที</div><div class="seats" id="seats"></div></div>
+      <div class="tip" id="tip">ชี้ที่นั่งเพื่อดูชื่อแขก · แตะเพื่อเปิดรายละเอียด</div>
+      <div class="pop" id="pop" hidden role="dialog" aria-label="รายละเอียดที่นั่ง"></div>
+    </section>
+
+    <!-- รายกลุ่ม -->
+    <section class="view" id="v-groups">
+      <div id="gdetail" hidden></div>
+      <div id="glist">
+        <div class="toolbar">
+          <button class="small-btn" type="button" id="exportCsv">ดาวน์โหลดรายงาน (CSV)</button>
+          <button class="small-btn" type="button" id="printList">พิมพ์รายชื่อสำรอง</button>
+        </div>
+        <div class="groups" id="groups"></div>
+        <p class="note">กดที่กลุ่มเพื่อดูรายชื่อแขกในกลุ่มนั้น</p>
+      </div>
+    </section>
+
+    <!-- จัดการ -->
+    <section class="view" id="v-manage">
+      <div class="admin">
+        <div class="card">
+          <h2>นำเข้ารายชื่อจาก Excel</h2>
+          <p class="sub">1 ชีทต่อ 1 กลุ่ม ชื่อชีทมีเลขกลุ่ม เช่น “กลุ่ม 1” คอลัมน์: ลำดับ, ชื่อ-นามสกุล, หน่วยงาน/สังกัด, จำนวนที่นั่ง, เลขที่นั่ง, ช่องติดต่อ, หมายเหตุ</p>
+          <div class="stack">
+            <input type="file" id="xlsx" accept=".xlsx,.xls,.csv">
+            <div id="importInfo"></div>
+            <label class="checks" style="flex-direction:row"><input type="checkbox" id="importReplace"> ลบรายชื่อเดิมทั้งหมดก่อนนำเข้า</label>
+            <button class="btn" type="button" id="importBtn" disabled>นำเข้า</button>
+          </div>
+        </div>
+        <div class="card">
+          <h2>เพิ่มแขกหน้างาน</h2>
+          <p class="sub">เพิ่มแล้วไปที่ผังที่นั่งเพื่อจัดที่นั่งให้</p>
+          <form id="addForm" class="stack">
+            <div class="formgrid">
+              <label class="f">กลุ่ม<input id="aGroup" type="number" min="1" max="99" required></label>
+              <label class="f">จำนวนที่นั่ง<input id="aSeats" type="number" min="1" value="1" required></label>
+              <label class="f">ช่องรับบัตร<input id="aCounter" type="number" min="1"></label>
+            </div>
+            <label class="f">ชื่อ-นามสกุล<input id="aName" required></label>
+            <label class="f">หน่วยงาน/สังกัด<input id="aOrg"></label>
+            <label class="f">หมายเหตุ<input id="aNote"></label>
+            <button class="btn" type="submit">เพิ่มรายชื่อ</button>
+          </form>
+        </div>
+        <div class="card">
+          <h2>ผังที่นั่ง</h2>
+          <p class="sub">1 บรรทัดต่อ 1 แถว: ชื่อแถว แล้วจำนวนที่นั่งแต่ละบล็อกจากซ้ายไปขวา เช่น <code>A: 4, 12, 4</code></p>
+          <div class="stack">
+            <label class="f"><textarea id="layoutText" rows="8" spellcheck="false" style="font-family:var(--f-mono)"></textarea></label>
+            <button class="btn ghost" type="button" id="layoutBtn">บันทึกผัง</button>
+          </div>
+        </div>
+        <div class="card">
+          <h2>ซ้อมระบบ</h2>
+          <p class="sub">ล้างสถานะลงทะเบียนทั้งหมด ให้ทุกที่นั่งกลับเป็นสีฟ้า ใช้ก่อนวันงานจริงเท่านั้น</p>
+          <div class="stack">
+            <label class="checks" style="flex-direction:row"><input type="checkbox" id="resetOk"> ยืนยันว่าต้องการล้างการลงทะเบียน</label>
+            <button class="btn danger" type="button" id="resetBtn" disabled>ล้างการลงทะเบียนทั้งหมด</button>
+            <button class="btn ghost" type="button" id="demoArrive" hidden>จำลองแขกมาถึง 25 คน</button>
+          </div>
+        </div>
+        <div class="card" style="grid-column:1/-1">
+          <h2>ประวัติการแก้ไข</h2>
+          <p class="sub">ล่าสุด 200 รายการ</p>
+          <div class="log" id="log"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div id="print"></div>
+<div class="toast" id="toast" hidden role="status"></div>
+
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
+<script src="app.js"></script>
+</body>
+</html>
