@@ -192,7 +192,10 @@ const LocalBackend = (() => {
 /* ================================================================ Supabase backend */
 const SupaBackend = (() => {
   let sb = null, channel = null, wasDown = false;
-  const QKEY = 'royal-queue-v1';
+  const QKEY = 'royal-queue-v1', SNAP = 'royal-snapshot-v1', MEKEY = 'royal-me-v1';
+  // สำเนาข้อมูลล่าสุดในเครื่อง: ค้นชื่อได้แม้เปิดแอปตอนเน็ตหลุด
+  const saveSnap = () => sset(localStorage, SNAP, { at: new Date().toISOString(), guests: [...S.guests.values()], seats: [...S.seats.values()],
+    assignments: [...S.assign].map(([seat_id, guest_id]) => ({ seat_id, guest_id })), log: S.log.slice(0, 50) });
   const isNet = (e) => !navigator.onLine || /fetch|network|Failed to fetch|Load failed/i.test(e?.message || '');
 
   async function rpc(name, args) {
@@ -244,15 +247,30 @@ const SupaBackend = (() => {
       const { error } = await this.client().auth.signInWithPassword({ email, password });
       if (error) throw new Error(error.message === 'Invalid login credentials' ? 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง' : error.message);
     },
-    async signOut() { await this.client().auth.signOut(); },
+    async signOut() { try { localStorage.removeItem(SNAP); localStorage.removeItem(MEKEY); } catch (e) {} await this.client().auth.signOut(); },
     async staff() {
-      const { data: u } = await sb.auth.getUser();
-      const { data, error } = await sb.from('staff').select('display_name, role').eq('user_id', u.user.id).maybeSingle();
-      if (error) throw new Error(error.message);
-      if (!data) throw new Error('บัญชีนี้ยังไม่ได้รับสิทธิ์ใช้งาน ติดต่อผู้ดูแลระบบ');
-      return { name: data.display_name, role: data.role };
+      const { data: ses } = await sb.auth.getSession();
+      const uid = ses.session?.user?.id;
+      try {
+        const { data, error } = await sb.from('staff').select('display_name, role').eq('user_id', uid).maybeSingle();
+        if (error) throw new Error(error.message);
+        if (!data) throw Object.assign(new Error('บัญชีนี้ยังไม่ได้รับสิทธิ์ใช้งาน ติดต่อผู้ดูแลระบบ'), { final: true });
+        const me = { name: data.display_name, role: data.role, uid }; sset(localStorage, MEKEY, me); return me;
+      } catch (e) {
+        const me = sget(localStorage, MEKEY, null);
+        if (!e.final && isNet(e) && me && me.uid === uid) return me;   // เปิดแอปตอนออฟไลน์
+        throw e;
+      }
     },
-    async load() { S.pending = new Set(queue().map((x) => x.gid)); await loadAll(); },
+    async load() {
+      S.pending = new Set(queue().map((x) => x.gid));
+      try { await loadAll(); saveSnap(); }
+      catch (e) {
+        const snap = sget(localStorage, SNAP, null); if (!snap) throw e;
+        setRows(snap); toast(`ออฟไลน์: ใช้ข้อมูลที่บันทึกในเครื่อง เมื่อ ${hhmm(snap.at)} น.`, true);
+      }
+      setInterval(saveSnap, 30000);
+    },
     subscribe() {
       channel = sb.channel('royal-db')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'guests' }, (p) => {
@@ -367,7 +385,15 @@ function renderResults() {
     ${statusPill(g)}</button>`).join('');
 }
 let slipEdit = false;
+const isSheet = () => matchMedia('(max-width:880px)').matches;
+function openSlip() { if (!isSheet()) return; $('slip').classList.add('open'); $('slipBack').hidden = false; }
+function closeSlip() { $('slip').classList.remove('open'); $('slipBack').hidden = true; }
 function renderSlip() {
+  renderSlipInner();
+  const x = document.createElement('button'); x.type = 'button'; x.className = 'sheet-x'; x.setAttribute('aria-label', 'ปิด'); x.textContent = '✕';
+  x.onclick = closeSlip; $('slip').prepend(x);
+}
+function renderSlipInner() {
   const s = $('slip'); const g = selectedId != null ? S.guests.get(selectedId) : null;
   if (!g) {
     s.innerHTML = '<h2>ใบลงทะเบียน</h2><p class="sub">เลือกรายชื่อจากผลการค้นหา แล้วตรวจบัตรเชิญและบัตรประชาชนก่อนยืนยัน</p><div class="big"><div><span>กลุ่ม</span><b>–</b></div><div><span>ลำดับที่</span><b>–</b></div><div class="ch"><span>รับบัตรช่อง</span><b>–</b></div></div>';
@@ -413,14 +439,18 @@ function renderSlip() {
     <dl><dt>จำนวนที่นั่ง</dt><dd>${g.seat_count}</dd><dt>เลขที่นั่ง</dt><dd class="num">${seats.join(', ') || '–'}</dd><dt>หมายเหตุ</dt><dd>${esc(g.note || '–')}</dd></dl>
     <div class="stack" style="margin-bottom:10px">${warns.join('')}</div>${action}${sup}`;
   if ($('c1')) { const upd = () => ($('confirm').disabled = !($('c1').checked && $('c2').checked)); $('c1').onchange = upd; $('c2').onchange = upd;
-    $('confirm').onclick = async () => { $('confirm').disabled = true; await act(() => B.register(g.id)); $('q').focus(); $('q').select(); }; }
+    $('confirm').onclick = async () => {
+      $('confirm').disabled = true;
+      if (await act(() => B.register(g.id), `ลงทะเบียนแล้ว · ส่งแขกไปช่อง ${g.counter_no ?? '–'}`)) { if (isSheet()) { closeSlip(); $('q').value = ''; search(); } }
+      $('q').focus(); $('q').select();
+    }; }
   if ($('undo')) $('undo').onclick = () => act(() => B.unregister(g.id, 'กดผิด'), 'ยกเลิกแล้ว');
   if ($('toEdit')) $('toEdit').onclick = () => { slipEdit = true; renderSlip(); };
   if ($('toAssign')) $('toAssign').onclick = () => { startPick(g.id); location.hash = 'seats'; };
 }
 function selectGuest(id) {
-  selectedId = id; slipEdit = false; renderResults(); renderSlip();
-  if (innerWidth <= 880) $('slip').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  selectedId = id; slipEdit = false; renderResults(); renderSlip(); openSlip();
+  if (isSheet()) $('q').blur();
 }
 
 /* ================================================================ seat map */
@@ -436,9 +466,15 @@ function buildSeats() {
   }).join('');
   $('seats').innerHTML = html || '<div class="empty">ยังไม่มีผังที่นั่ง หัวหน้างานตั้งผังได้ที่หน้า “จัดการ”</div>';
 }
+let zoom = null;   // null = พอดีจอ
+function applyZoom() {
+  const seats = $('seats'); seats.style.zoom = 1;
+  const z = zoom ?? Math.min(1.6, Math.max(0.4, ($('hall').clientWidth - 16) / Math.max(1, seats.scrollWidth)));
+  seats.style.zoom = z.toFixed(3);
+}
 function paintSeats() {
   const sig = [...S.seats.keys()].join(',');
-  if (sig !== S.layoutSig) { S.layoutSig = sig; buildSeats(); }
+  if (sig !== S.layoutSig) { S.layoutSig = sig; buildSeats(); requestAnimationFrame(applyZoom); }
   const gf = $('gfilter').value;
   const hl = new Set(popSeat && S.assign.has(popSeat) ? seatsOf(S.assign.get(popSeat)) : []);
   document.querySelectorAll('.seat').forEach((el) => {
@@ -586,7 +622,7 @@ function renderDetail() {
       <button type="button" data-m="wait" aria-pressed="${gMode === 'wait'}">ยังไม่ลงทะเบียน ${wait.length}</button>
       <button type="button" data-m="done" aria-pressed="${gMode === 'done'}">ลงทะเบียนแล้ว ${done.length}</button></div>
     <div class="tbl"><table><thead><tr><th>ลำดับ</th><th>ชื่อ-นามสกุล / หน่วยงาน</th><th>เลขที่นั่ง</th><th>ช่อง</th><th>หมายเหตุ</th><th>สถานะ</th></tr></thead><tbody>
-    ${rows.length ? rows.map((g) => `<tr data-id="${g.id}"${can('counter', 'supervisor') ? ' class="click"' : ''}><td class="num">${g.order_no}</td><td>${esc(g.full_name)}<div class="ag">${esc(g.org || '')}</div></td><td class="num">${seatsOf(g.id).join(', ') || '–'}</td><td class="num">${g.counter_no ?? '–'}</td><td>${esc(g.note || '–')}</td><td>${statusPill(g)}</td></tr>`).join('')
+    ${rows.length ? rows.map((g) => `<tr data-id="${g.id}"${can('counter', 'supervisor') ? ' class="click"' : ''}><td class="num c-order">${g.order_no}</td><td class="c-name">${esc(g.full_name)}<div class="ag">${esc(g.org || '')}</div></td><td class="num" data-label="ที่นั่ง">${seatsOf(g.id).join(', ') || '–'}</td><td class="num" data-label="ช่อง">${g.counter_no ?? '–'}</td><td data-label="หมายเหตุ">${esc(g.note || '–')}</td><td class="c-status">${statusPill(g)}</td></tr>`).join('')
       : '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">ไม่มีรายชื่อในสถานะนี้</td></tr>'}
     </tbody></table></div>`;
   $('gback').onclick = () => { openGroup = null; renderDetail(); };
@@ -784,6 +820,36 @@ function wire() {
   window.addEventListener('hashchange', route);
   $('logout').onclick = async () => { if (DEMO) { try { sessionStorage.removeItem('royal-demo-me'); } catch (e) {} } else await SupaBackend.signOut(); location.hash = ''; location.reload(); };
   $('reloadBtn').onclick = () => location.reload();
+  $('slipBack').onclick = closeSlip;
+  document.querySelectorAll('.zoom [data-z]').forEach((b) => (b.onclick = () => {
+    const d = +b.dataset.z; const cur = parseFloat($('seats').style.zoom) || 1;
+    zoom = d === 0 ? null : Math.min(2.4, Math.max(0.35, cur * (d > 0 ? 1.25 : 0.8))); applyZoom();
+  }));
+  let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { if (zoom == null) applyZoom(); if (!isSheet()) closeSlip(); }, 150); });
+}
+
+/* ================================================================ PWA */
+let installEvt = null;
+function setupPwa() {
+  if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
+  const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+  window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installEvt = e; $('installBtn').hidden = false; });
+  window.addEventListener('appinstalled', () => { $('installBtn').hidden = true; toast('ติดตั้งแอปแล้ว เปิดจากหน้าจอโฮมได้เลย'); });
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) && !standalone;
+  if (ios) $('installBtn').hidden = false;
+  $('installBtn').onclick = async () => {
+    if (installEvt) { installEvt.prompt(); await installEvt.userChoice; installEvt = null; $('installBtn').hidden = true; }
+    else toast('iPhone/iPad: แตะปุ่มแชร์ ⬆︎ ใน Safari แล้วเลือก “เพิ่มไปยังหน้าจอโฮม”');
+  };
+}
+// จอแสดงผล (Onboard): กันจอดับระหว่างเปิดผังที่นั่ง
+let wake = null;
+async function keepAwake() {
+  try {
+    const want = can('viewer') && document.visibilityState === 'visible' && currentView() === 'seats';
+    if (want && !wake && navigator.wakeLock) { wake = await navigator.wakeLock.request('screen'); wake.addEventListener('release', () => (wake = null)); }
+    if (!want && wake) { await wake.release(); wake = null; }
+  } catch (e) { /* not allowed */ }
 }
 
 /* ================================================================ version check */
@@ -799,7 +865,8 @@ async function start() {
   $('whoName').textContent = `${S.me.name} · ${ROLE_LABEL[S.me.role]}`;
   try { await B.load(); } catch (e) { toast('โหลดข้อมูลไม่สำเร็จ: ' + e.message, true); }
   B.subscribe();
-  route();
+  route(); keepAwake();
+  document.addEventListener('visibilitychange', keepAwake); window.addEventListener('hashchange', keepAwake);
   checkVersion(); setInterval(checkVersion, 60000);
 }
 // "Counter 1" → counter1@STAFF_DOMAIN ; ใส่อีเมลเต็มก็ได้
@@ -816,7 +883,7 @@ async function init() {
   document.title = CFG.EVENT_NAME ? CFG.EVENT_NAME : document.title;
   $('eventName').textContent = $('loginTitle').textContent = CFG.EVENT_NAME || 'ระบบลงทะเบียนรอบเสด็จ';
   $('venue').textContent = $('loginVenue').textContent = (CFG.VENUE || '') + (DEMO ? ' · โหมดสาธิต ข้อมูลสมมุติ' : '');
-  wire();
+  wire(); setupPwa();
   if (DEMO) {
     const me = sget(sessionStorage, 'royal-demo-me', null);
     if (me) { S.me = me; return start(); }

@@ -4,6 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#1c1a36">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ลงทะเบียน">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/favicon-64.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <title>ระบบลงทะเบียนรอบเสด็จ</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+Thai:wght@600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
@@ -60,7 +68,7 @@
           <a href="#groups" data-v="groups">รายกลุ่ม</a>
           <a href="#manage" data-v="manage" data-need="supervisor">จัดการ</a>
         </nav>
-        <div class="who"><span class="chip" id="conn">กำลังเชื่อมต่อ</span><span id="whoName"></span><button class="linkbtn" type="button" id="logout">ออก</button></div>
+        <div class="who"><span class="chip" id="conn">กำลังเชื่อมต่อ</span><span id="whoName"></span><button class="small-btn" type="button" id="installBtn" hidden>ติดตั้งแอป</button><button class="linkbtn" type="button" id="logout">ออก</button></div>
       </div>
     </div>
   </header>
@@ -74,6 +82,7 @@
           <p class="hint">ค้นด้วยชื่อ นามสกุล หน่วยงาน หรือพิมพ์ “ก12” เพื่อดูกลุ่ม 12 · ↑ ↓ แล้ว Enter เพื่อเลือก</p>
           <div class="results" id="results"></div>
         </div>
+        <div class="sheet-back" id="slipBack" hidden></div>
         <aside class="card slip" id="slip"></aside>
       </div>
     </section>
@@ -91,7 +100,12 @@
         <button class="small-btn" type="button" id="editMode" data-need="supervisor">แก้ไขที่นั่ง</button>
       </div>
       <div class="editbar" id="editBar" hidden></div>
-      <div class="hall"><div class="stage">เวที</div><div class="seats" id="seats"></div></div>
+      <div class="zoom" role="group" aria-label="ขนาดผัง">
+        <button class="small-btn" type="button" data-z="-1" aria-label="ย่อ">−</button>
+        <button class="small-btn" type="button" data-z="0">พอดีจอ</button>
+        <button class="small-btn" type="button" data-z="1" aria-label="ขยาย">+</button>
+      </div>
+      <div class="hall" id="hall"><div class="stage">เวที</div><div class="seats" id="seats"></div></div>
       <div class="tip" id="tip">ชี้ที่นั่งเพื่อดูชื่อแขก · แตะเพื่อเปิดรายละเอียด</div>
       <div class="pop" id="pop" hidden role="dialog" aria-label="รายละเอียดที่นั่ง"></div>
     </section>
@@ -162,6 +176,14 @@
       </div>
     </section>
   </main>
+
+  <!-- แถบเมนูด้านล่าง (มือถือ) -->
+  <nav class="tabbar" id="tabbar" aria-label="เมนูหลัก">
+    <a href="#register" data-v="register" data-need="counter,supervisor"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><span>ลงทะเบียน</span></a>
+    <a href="#seats" data-v="seats"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6c4-3 12-3 16 0"/><rect x="3.5" y="10" width="4.5" height="4" rx="1.2"/><rect x="9.75" y="10" width="4.5" height="4" rx="1.2"/><rect x="16" y="10" width="4.5" height="4" rx="1.2"/><rect x="3.5" y="16.5" width="4.5" height="4" rx="1.2"/><rect x="9.75" y="16.5" width="4.5" height="4" rx="1.2"/><rect x="16" y="16.5" width="4.5" height="4" rx="1.2"/></svg><span>ผังที่นั่ง</span></a>
+    <a href="#groups" data-v="groups"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3 19.5c.6-3.4 3-5.3 6-5.3s5.4 1.9 6 5.3"/><circle cx="17" cy="9" r="2.4"/><path d="M16.5 14.3c2.4.2 4 1.8 4.5 4.6"/></svg><span>รายกลุ่ม</span></a>
+    <a href="#manage" data-v="manage" data-need="supervisor"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.6M12 18.6v2.6M21.2 12h-2.6M5.4 12H2.8M18.5 5.5l-1.8 1.8M7.3 16.7l-1.8 1.8M18.5 18.5l-1.8-1.8M7.3 7.3L5.5 5.5"/></svg><span>จัดการ</span></a>
+  </nav>
 </div>
 
 <div id="print"></div>

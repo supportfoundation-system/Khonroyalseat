@@ -1,0 +1,21 @@
+{
+  "name": "ลงทะเบียนแขก · รอบเสด็จ",
+  "short_name": "ลงทะเบียน",
+  "description": "ลงทะเบียนแขกและผังที่นั่ง หอประชุมใหญ่ ศูนย์วัฒนธรรมแห่งประเทศไทย",
+  "lang": "th",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#1c1a36",
+  "theme_color": "#1c1a36",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "เคาน์เตอร์ลงทะเบียน", "url": "./#register" },
+    { "name": "ผังที่นั่ง", "url": "./#seats" }
+  ]
+}

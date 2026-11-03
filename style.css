@@ -181,12 +181,72 @@ dt{color:var(--muted)} dd{margin:0;overflow-wrap:anywhere}
   #print table{width:100%;border-collapse:collapse}
   #print th,#print td{border:1px solid #999;padding:3pt 5pt;text-align:left;vertical-align:top}
 }
+/* ---------- app shell: tab bar, sheets, zoom ---------- */
+.tabbar{display:none}
+.sheet-back{display:none}
+.zoom{display:flex;gap:6px;justify-content:flex-end;margin-bottom:8px}
+.zoom .small-btn{min-width:40px}
+.slip .sheet-x{display:none}
+.tabbar svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+
+@media (max-width:880px){
+  .slip{position:fixed;left:0;right:0;bottom:0;top:auto;z-index:30;max-height:88vh;overflow:auto;margin:0;
+    border-radius:18px 18px 0 0;border-bottom:0;transform:translateY(105%);visibility:hidden;transition:transform .25s ease,visibility 0s .25s;
+    padding-bottom:calc(20px + env(safe-area-inset-bottom,0px));padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px));
+    box-shadow:0 -12px 40px rgba(10,8,30,.28)}
+  .slip.open{transform:none;visibility:visible;transition:transform .25s ease}
+  .slip::before{content:"";display:block;width:44px;height:5px;border-radius:3px;background:var(--line);margin:-8px auto 12px}
+  .slip .sheet-x{display:block;position:absolute;top:12px;right:12px;width:34px;height:34px;border-radius:10px;border:0;background:var(--surface-2);color:var(--muted);cursor:pointer;font-size:1rem}
+  .slip h2{padding-right:40px}
+  .sheet-back{display:block;position:fixed;inset:0;background:rgba(10,8,30,.45);z-index:29}
+  .big b{font-size:2rem}.big .ch b{font-size:2.6rem}
+  .btn{padding-block:13px;font-size:1.02rem}
+  .checks label{padding-block:6px}
+  .checks input{width:22px;height:22px}
+}
+
 @media (max-width:640px){
-  header{position:static}
+  body{padding-bottom:calc(68px + env(safe-area-inset-bottom,0px))}
+  header{position:sticky}
+  .head{padding-block:10px 8px;gap:8px}
+  .brand h1{font-size:1.05rem}
+  .brand p{display:none}
   .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;width:100%}
   .stat{min-width:0;padding:5px 8px}
-  .stat b{font-size:1.05rem}
-  .stat span{font-size:.68rem;line-height:1.25;display:block}
-  .slip{position:static}
+  .stat b{font-size:1.02rem}
+  .stat span{font-size:.66rem;line-height:1.25;display:block}
+  .navrow nav{display:none}
+  .navrow{padding-bottom:6px}
+  .who{width:100%;justify-content:space-between}
+  main{padding-block:14px 24px}
+  .search input{font-size:1.1rem;padding:14px}
+  .hint{display:none}
+  .row{padding:12px}
+
+  .tabbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:25;background:var(--surface);border-top:1px solid var(--line);
+    padding:6px max(8px,env(safe-area-inset-left,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-right,0px))}
+  .tabbar a{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 4px;border-radius:12px;text-decoration:none;color:var(--muted);font-size:.72rem;font-weight:500}
+  .tabbar a[aria-current="page"]{color:var(--accent);background:var(--accent-soft)}
+
+  .pop{left:0!important;right:0;top:auto!important;bottom:0;width:100%;max-height:80vh;overflow:auto;border-radius:18px 18px 0 0;
+    padding:18px max(18px,env(safe-area-inset-left,0px)) calc(18px + env(safe-area-inset-bottom,0px)) max(18px,env(safe-area-inset-right,0px));z-index:30}
+  .tools{gap:8px}
+  .tools .legend{order:3;width:100%;gap:10px;font-size:.78rem}
+  .hall{padding:14px 6px;border-radius:12px}
+  .stage{margin-bottom:16px;height:30px}
+
+  .tbl{background:none;border:0;overflow:visible}
+  .tbl table{min-width:0}
+  .tbl thead{display:none}
+  .tbl table,.tbl tbody,.tbl tr,.tbl td{display:block;width:100%}
+  .tbl tr{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px;position:relative}
+  .tbl td{border:0;padding:2px 0}
+  .tbl td[data-label]::before{content:attr(data-label) " ";color:var(--muted);font-size:.78rem;font-family:var(--f-body)}
+  .tbl td.c-name{font-weight:600;padding-right:110px}
+  .tbl td.c-order{position:absolute;top:10px;right:12px;width:auto;color:var(--muted)}
+  .tbl td.c-status{position:absolute;top:30px;right:12px;width:auto}
+  .admin{grid-template-columns:1fr}
+  .gd-head h2{flex-basis:auto}
 }
+@media (max-width:640px) and (display-mode:standalone){ header{padding-top:env(safe-area-inset-top,0px)} }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
